@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react'
+import { useAuth } from './contexts/AuthContext'
+import Auth from './components/Auth'
 import './App.css'
 
 function App() {
   const [backendStatus, setBackendStatus] = useState('checking...')
   const [backendMessage, setBackendMessage] = useState('')
+  const { currentUser, signout } = useAuth()
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -19,6 +22,14 @@ function App() {
         setBackendMessage('Cannot connect to backend. Make sure Django server is running.')
       })
   }, [])
+
+  const handleSignout = async () => {
+    try {
+      await signout()
+    } catch (error) {
+      console.error('Error signing out:', error)
+    }
+  }
 
   return (
     <div style={{ padding: '2rem', textAlign: 'center' }}>
@@ -46,10 +57,52 @@ function App() {
         {backendMessage && <p style={{ fontSize: '0.9rem', color: '#666' }}>{backendMessage}</p>}
       </div>
 
-      <div style={{ marginTop: '2rem', color: '#666' }}>
-        <p>Ready for development!</p>
-        <p style={{ fontSize: '0.9rem' }}>Next up: Firebase Auth, Wardrobe Upload, AI Outfit Generation</p>
-      </div>
+      {currentUser ? (
+        <div style={{ marginTop: '2rem' }}>
+          <div style={{
+            margin: '0 auto 2rem',
+            padding: '1rem',
+            maxWidth: '500px',
+            backgroundColor: '#e8f5e9',
+            borderRadius: '8px'
+          }}>
+            <h3>Welcome!</h3>
+            <p><strong>Email:</strong> {currentUser.email}</p>
+            {currentUser.backendUser && (
+              <>
+                <p><strong>User ID:</strong> {currentUser.backendUser.id}</p>
+                <p><strong>Firebase UID:</strong> {currentUser.backendUser.firebase_uid}</p>
+              </>
+            )}
+            <button
+              onClick={handleSignout}
+              style={{
+                marginTop: '1rem',
+                padding: '0.5rem 1rem',
+                backgroundColor: '#dc3545',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              Sign Out
+            </button>
+          </div>
+
+          <div style={{ color: '#666' }}>
+            <p>Authentication successful!</p>
+            <p style={{ fontSize: '0.9rem' }}>Next up: Wardrobe Upload, AI Outfit Generation</p>
+          </div>
+        </div>
+      ) : (
+        <>
+          <Auth />
+          <div style={{ marginTop: '2rem', color: '#666' }}>
+            <p>Sign in to get started</p>
+          </div>
+        </>
+      )}
     </div>
   )
 }
