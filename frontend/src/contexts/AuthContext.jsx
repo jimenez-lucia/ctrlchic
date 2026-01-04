@@ -3,7 +3,9 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut as firebaseSignOut,
-  onAuthStateChanged
+  onAuthStateChanged,
+  GoogleAuthProvider,
+  signInWithPopup
 } from 'firebase/auth';
 import { auth } from '../firebase';
 import axios from 'axios';
@@ -36,6 +38,19 @@ export const AuthProvider = ({ children }) => {
     try {
       setError(null);
       const result = await signInWithEmailAndPassword(auth, email, password);
+      return result;
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    }
+  };
+
+  // Sign in with Google
+  const signinWithGoogle = async () => {
+    try {
+      setError(null);
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
       return result;
     } catch (err) {
       setError(err.message);
@@ -97,6 +112,7 @@ export const AuthProvider = ({ children }) => {
     currentUser,
     signup,
     signin,
+    signinWithGoogle,
     signout,
     loading,
     error,
