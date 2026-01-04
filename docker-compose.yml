@@ -3,6 +3,9 @@ services:
     image: postgres:16-alpine
     container_name: ctrlchic_postgres
     environment:
+      # WARNING: These credentials are for DEVELOPMENT ONLY
+      # DO NOT use these credentials in production
+      # In production, use environment variables or secrets management
       POSTGRES_DB: ctrlchic
       POSTGRES_USER: ctrlchic_user
       POSTGRES_PASSWORD: ctrlchic_dev_password

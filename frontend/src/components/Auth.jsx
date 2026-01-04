@@ -18,6 +18,7 @@ export default function Auth() {
       await signinWithGoogle();
     } catch (err) {
       console.error('Google sign-in error:', err);
+      setLocalError(err.message || 'Failed to sign in with Google. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -47,6 +48,7 @@ export default function Auth() {
       }
     } catch (err) {
       console.error('Auth error:', err);
+      setLocalError(err.message || 'Authentication failed. Please try again.');
     } finally {
       setLoading(false);
     }

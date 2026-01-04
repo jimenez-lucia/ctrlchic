@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -70,8 +70,17 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Get current user from backend
-  const getCurrentUserFromBackend = async (idToken) => {
+  // Get fresh auth token (handles expiration automatically)
+  const getAuthToken = async () => {
+    if (auth.currentUser) {
+      // Force refresh if token is expired (Firebase SDK handles this)
+      return await auth.currentUser.getIdToken(true);
+    }
+    return null;
+  };
+
+  // Get current user from backend (memoized to prevent unnecessary re-renders)
+  const getCurrentUserFromBackend = useCallback(async (idToken) => {
     try {
       const response = await axios.get(`${API_URL}/api/auth/me/`, {
         headers: {
@@ -83,19 +92,18 @@ export const AuthProvider = ({ children }) => {
       console.error('Error fetching user from backend:', err);
       return null;
     }
-  };
+  }, [API_URL]);
 
   // Listen for auth state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        // User is signed in, get ID token and fetch user data from backend
+        // User is signed in, fetch user data from backend
         const idToken = await user.getIdToken();
         const backendUser = await getCurrentUserFromBackend(idToken);
 
         setCurrentUser({
           ...user,
-          idToken,
           backendUser
         });
       } else {
@@ -106,7 +114,7 @@ export const AuthProvider = ({ children }) => {
     });
 
     return unsubscribe;
-  }, []);
+  }, [getCurrentUserFromBackend]);
 
   const value = {
     currentUser,
@@ -114,6 +122,7 @@ export const AuthProvider = ({ children }) => {
     signin,
     signinWithGoogle,
     signout,
+    getAuthToken,
     loading,
     error,
     setError

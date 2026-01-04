@@ -1,4 +1,5 @@
 from django.contrib.auth.models import User
+from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
@@ -13,6 +14,13 @@ def get_current_user(request: Request) -> Response:
     Requires Firebase authentication token.
     """
     user: User = request.user
+
+    # Check if user has a profile (defensive programming)
+    if not hasattr(user, "profile"):
+        return Response(
+            {"error": "User profile not found. Please contact support."},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
 
     return Response(
         {
@@ -32,6 +40,13 @@ def auth_test(request: Request) -> Response:
     Returns different responses based on authentication status.
     """
     if request.user and request.user.is_authenticated:
+        # Check if user has a profile (defensive programming)
+        if not hasattr(request.user, "profile"):
+            return Response(
+                {"error": "User profile not found. Please contact support."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
         return Response(
             {
                 "authenticated": True,

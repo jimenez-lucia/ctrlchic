@@ -157,7 +157,16 @@ REST_FRAMEWORK = {
 }
 
 # Firebase Settings
-FIREBASE_CREDENTIALS_PATH = config("FIREBASE_CREDENTIALS_PATH", default="")
+_firebase_creds_path = config("FIREBASE_CREDENTIALS_PATH", default="")
+if _firebase_creds_path:
+    # If relative path, resolve it relative to BASE_DIR for consistency
+    _firebase_creds_path_obj = Path(_firebase_creds_path)
+    if not _firebase_creds_path_obj.is_absolute():
+        FIREBASE_CREDENTIALS_PATH = str(BASE_DIR / _firebase_creds_path)
+    else:
+        FIREBASE_CREDENTIALS_PATH = _firebase_creds_path
+else:
+    FIREBASE_CREDENTIALS_PATH = ""
 
 # File Upload Settings
 MEDIA_URL = "/media/"

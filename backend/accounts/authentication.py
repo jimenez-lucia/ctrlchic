@@ -2,6 +2,7 @@ from typing import Optional
 
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.db import IntegrityError, transaction
 from django.http import HttpRequest
 import firebase_admin
 from firebase_admin import auth, credentials
@@ -75,6 +76,7 @@ class FirebaseAuthentication(authentication.BaseAuthentication):
     def get_or_create_user(self, firebase_uid: str, email: Optional[str]) -> User:
         """
         Get or create a Django user based on Firebase UID.
+        Handles race conditions when multiple requests try to create the same user.
         """
         try:
             # Try to get existing user profile
@@ -87,13 +89,23 @@ class FirebaseAuthentication(authentication.BaseAuthentication):
             if not email:
                 raise AuthenticationFailed("Email is required for new users")
 
-            # Create Django user
-            user: User = User.objects.create_user(
-                username=email,
-                email=email,
-            )
+            try:
+                # Use atomic transaction to ensure user + profile are created together
+                with transaction.atomic():
+                    # Create Django user
+                    user: User = User.objects.create_user(
+                        username=email,
+                        email=email,
+                    )
 
-            # Create user profile linked to Firebase UID
-            UserProfile.objects.create(user=user, firebase_uid=firebase_uid)
+                    # Create user profile linked to Firebase UID
+                    UserProfile.objects.create(user=user, firebase_uid=firebase_uid)
 
-            return user
+                    return user
+            except IntegrityError:
+                # Race condition: another request created this user simultaneously
+                # Retry the get operation to fetch the user that was just created
+                profile: UserProfile = UserProfile.objects.select_related("user").get(
+                    firebase_uid=firebase_uid
+                )
+                return profile.user

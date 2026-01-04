@@ -11,6 +11,33 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
+// Validate Firebase configuration
+function validateFirebaseConfig(config) {
+  const requiredKeys = [
+    'apiKey',
+    'authDomain',
+    'projectId',
+    'storageBucket',
+    'messagingSenderId',
+    'appId',
+  ];
+
+  const missingKeys = requiredKeys.filter((key) => {
+    const value = config[key];
+    return value === undefined || value === null || value === '';
+  });
+
+  if (missingKeys.length > 0) {
+    throw new Error(
+      `Missing required Firebase configuration values: ${missingKeys.join(', ')}. ` +
+      `Please check your .env file and ensure all VITE_FIREBASE_* variables are set.`
+    );
+  }
+}
+
+// Validate before initializing
+validateFirebaseConfig(firebaseConfig);
+
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
