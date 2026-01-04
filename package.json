@@ -3,9 +3,12 @@
   "version": "1.0.0",
   "description": "Virtual outfit visualization application",
   "scripts": {
-    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev": "npm run docker:up && concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "cd backend && source venv/bin/activate && python manage.py runserver",
     "dev:frontend": "cd frontend && npm run dev",
+    "docker:up": "docker-compose up -d postgres",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f postgres",
     "install:all": "cd backend && source venv/bin/activate && pip install -r requirements.txt && cd ../frontend && npm install"
   },
   "devDependencies": {
