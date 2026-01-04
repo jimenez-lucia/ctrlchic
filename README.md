@@ -13,7 +13,7 @@ CtrlChic uses AI to generate realistic images of outfits on your body. Upload a 
 - **Authentication**: Firebase Auth
 - **Storage**: Firebase Storage (for clothing images and mannequin photos)
 - **AI Generation**: nanobanana API (cost-effective outfit generation)
-- **Database**: SQLite (dev), PostgreSQL (production)
+- **Database**: PostgreSQL 16 (Docker for dev, managed service for production)
 
 ## Core Features (MVP - Tonight's Goal)
 
@@ -48,6 +48,7 @@ ctrlchic/
 - Python 3.9+
 - Node.js 18+
 - npm or yarn
+- Docker and Docker Compose (for PostgreSQL)
 
 ### Installation
 
@@ -99,11 +100,17 @@ ctrlchic/
 npm run dev
 ```
 
-This will start:
-- Backend API at http://localhost:8000
-- Frontend at http://localhost:5173
+This will:
+1. Start PostgreSQL in a Docker container
+2. Start the Django backend API at http://localhost:8000
+3. Start the React frontend at http://localhost:5173
 
 **Or run servers individually:**
+
+Start PostgreSQL:
+```bash
+npm run docker:up
+```
 
 Backend:
 ```bash
@@ -116,6 +123,13 @@ Frontend:
 ```bash
 cd frontend
 npm run dev
+```
+
+**Docker Management:**
+```bash
+npm run docker:up      # Start PostgreSQL container
+npm run docker:down    # Stop and remove containers
+npm run docker:logs    # View PostgreSQL logs
 ```
 
 ### Verify Setup

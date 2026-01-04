@@ -4,3 +4,6 @@ node_modules/
 
 # Environment files
 .env
+
+# VSCode workspace settings
+.vscode/
