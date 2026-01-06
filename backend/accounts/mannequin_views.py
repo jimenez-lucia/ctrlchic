@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from .models import UserProfile
 from .storage import (
     ALLOWED_IMAGE_EXTENSIONS,
+    MAX_FILE_SIZE_BYTES,
     MAX_FILE_SIZE_MB,
     delete_file,
     file_exists,
@@ -54,7 +55,7 @@ def get_upload_url(request: Request) -> Response:
         )
 
     # Validate file extension
-    is_valid, extension = validate_file_extension(filename)
+    is_valid, _ = validate_file_extension(filename)
     if not is_valid:
         return Response(
             {"error": f"Invalid file type. Allowed types: {', '.join(ALLOWED_IMAGE_EXTENSIONS)}"},
@@ -64,7 +65,7 @@ def get_upload_url(request: Request) -> Response:
     # Validate file size
     try:
         file_size_int = int(file_size)
-        if file_size_int > MAX_FILE_SIZE_MB * 1024 * 1024:
+        if file_size_int > MAX_FILE_SIZE_BYTES:
             return Response(
                 {"error": f"File size must be less than {MAX_FILE_SIZE_MB}MB"},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -72,10 +73,9 @@ def get_upload_url(request: Request) -> Response:
     except (ValueError, TypeError):
         return Response({"error": "Invalid fileSize value"}, status=status.HTTP_400_BAD_REQUEST)
 
-    # Validate content type
+    # Validate content type (using standard MIME types only)
     valid_content_types = {
-        "image/jpeg",
-        "image/jpg",
+        "image/jpeg",  # Standard MIME type for JPEG/JPG files
         "image/png",
         "image/heic",
         "image/heif",
@@ -127,6 +127,15 @@ def confirm_upload(request: Request) -> Response:
 
     if not file_path:
         return Response({"error": "filePath is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    # SECURITY: Verify the filePath belongs to this user
+    # This prevents users from confirming uploads to other users' paths
+    expected_path = generate_mannequin_path(user.profile.firebase_uid)
+    if file_path != expected_path:
+        return Response(
+            {"error": "Invalid filePath. Path does not belong to authenticated user."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
 
     # Verify the file exists in storage
     if not file_exists(file_path):
@@ -189,16 +198,29 @@ def get_mannequin(request: Request) -> Response:
     if not profile.mannequin_image_path:
         return Response({"url": None, "uploadedAt": None})
 
-    # Refresh download URL if needed (they expire after 7 days)
-    # For simplicity, we'll regenerate on every request
+    # Refresh download URL (they expire after 7 days)
+    # Regenerate on every request to ensure URL is always valid
     try:
         download_url = get_download_url(profile.mannequin_image_path)
-        if download_url and download_url != profile.mannequin_image_url:
+        if not download_url:
+            # File no longer exists in storage
+            return Response(
+                {"error": "Mannequin image not found in storage"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Update cached URL if it changed
+        if download_url != profile.mannequin_image_url:
             profile.mannequin_image_url = download_url
             profile.save()
-    except Exception:
-        # If we can't regenerate, use the cached URL
-        download_url = profile.mannequin_image_url
+
+    except Exception as e:
+        # Don't silently fall back to potentially expired cached URL
+        # Return error so frontend knows to handle it
+        return Response(
+            {"error": f"Failed to generate download URL: {str(e)}"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
 
     return Response(
         {

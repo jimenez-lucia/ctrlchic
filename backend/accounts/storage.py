@@ -1,6 +1,7 @@
 """Firebase Storage utilities for handling file uploads."""
 
 from datetime import timedelta
+import re
 from typing import Optional
 
 from firebase_admin import storage
@@ -25,6 +26,30 @@ def get_storage_bucket():
     return storage.bucket()
 
 
+def validate_firebase_uid(firebase_uid: str) -> bool:
+    """
+    Validate Firebase UID format to prevent path traversal attacks.
+
+    Firebase UIDs are alphanumeric strings. This validation ensures
+    the UID doesn't contain path traversal sequences like '../' or other
+    potentially dangerous characters.
+
+    Args:
+        firebase_uid: The Firebase UID to validate
+
+    Returns:
+        True if valid, False otherwise
+    """
+    if not firebase_uid:
+        return False
+
+    # Firebase UIDs are alphanumeric (can include letters, numbers, hyphens, underscores)
+    # Typical length is 28 characters but can vary
+    # Pattern ensures no path traversal characters (/, \, ., :, etc.)
+    pattern = r"^[a-zA-Z0-9_-]+$"
+    return bool(re.match(pattern, firebase_uid)) and len(firebase_uid) > 0
+
+
 def generate_mannequin_path(firebase_uid: str) -> str:
     """
     Generate storage path for mannequin image.
@@ -35,7 +60,17 @@ def generate_mannequin_path(firebase_uid: str) -> str:
 
     Returns:
         Storage path like 'users/{firebase_uid}/mannequin'
+
+    Raises:
+        ValueError: If firebase_uid contains invalid characters (potential path traversal)
     """
+    # SECURITY: Validate firebase_uid to prevent path traversal attacks
+    if not validate_firebase_uid(firebase_uid):
+        raise ValueError(
+            f"Invalid firebase_uid format. UID must be alphanumeric and cannot contain "
+            f"path traversal characters. Received: {firebase_uid!r}"
+        )
+
     return f"users/{firebase_uid}/mannequin"
 
 
