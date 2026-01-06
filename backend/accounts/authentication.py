@@ -23,7 +23,11 @@ def _initialize_firebase() -> None:
             # Not initialized yet, so initialize it
             try:
                 cred = credentials.Certificate(settings.FIREBASE_CREDENTIALS_PATH)
-                firebase_admin.initialize_app(cred)
+                # Initialize with storage bucket if configured
+                options = {}
+                if settings.FIREBASE_STORAGE_BUCKET:
+                    options["storageBucket"] = settings.FIREBASE_STORAGE_BUCKET
+                firebase_admin.initialize_app(cred, options)
             except Exception as e:
                 print(f"Warning: Firebase Admin SDK initialization failed: {e}")
 

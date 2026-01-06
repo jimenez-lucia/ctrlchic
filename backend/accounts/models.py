@@ -13,6 +13,17 @@ class UserProfile(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # Mannequin image for virtual try-on
+    mannequin_image_path = models.CharField(
+        max_length=500, blank=True, null=True, help_text="Firebase Storage path for mannequin image"
+    )
+    mannequin_image_url = models.URLField(
+        max_length=2048, blank=True, null=True, help_text="Public download URL for mannequin image"
+    )
+    mannequin_uploaded_at = models.DateTimeField(
+        blank=True, null=True, help_text="When the mannequin image was last uploaded"
+    )
+
     class Meta:
         db_table = "user_profiles"
         verbose_name = "User Profile"

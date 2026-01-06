@@ -168,6 +168,8 @@ if _firebase_creds_path:
 else:
     FIREBASE_CREDENTIALS_PATH = ""
 
+FIREBASE_STORAGE_BUCKET = config("FIREBASE_STORAGE_BUCKET", default="")
+
 # File Upload Settings
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"

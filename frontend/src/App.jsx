@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from './contexts/AuthContext'
 import Auth from './components/Auth'
+import MannequinUpload from './components/MannequinUpload'
 import './App.css'
 
 function App() {
@@ -90,10 +91,7 @@ function App() {
             </button>
           </div>
 
-          <div style={{ color: '#666' }}>
-            <p>Authentication successful!</p>
-            <p style={{ fontSize: '0.9rem' }}>Next up: Wardrobe Upload, AI Outfit Generation</p>
-          </div>
+          <MannequinUpload />
         </div>
       ) : (
         <>
