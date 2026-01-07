@@ -7,21 +7,51 @@ import './App.css'
 function App() {
   const [backendStatus, setBackendStatus] = useState('checking...')
   const [backendMessage, setBackendMessage] = useState('')
+  const [isSpinningUp, setIsSpinningUp] = useState(false)
   const { currentUser, signout } = useAuth()
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
   useEffect(() => {
-    fetch(`${API_URL}/api/health/`)
-      .then(res => res.json())
-      .then(data => {
+    const checkBackendHealth = async () => {
+      // Show "spinning up" message after 5 seconds
+      const spinUpTimer = setTimeout(() => {
+        setIsSpinningUp(true)
+        setBackendMessage(
+          'Waking up server... This may take 30-60 seconds on first visit or after inactivity.'
+        )
+      }, 5000)
+
+      try {
+        // Allow up to 90 seconds for cold start
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), 90000)
+
+        const response = await fetch(`${API_URL}/api/health/`, {
+          signal: controller.signal,
+        })
+        clearTimeout(timeout)
+        clearTimeout(spinUpTimer)
+
+        const data = await response.json()
         setBackendStatus(data.status)
         setBackendMessage(data.message)
-      })
-      .catch(() => {
+        setIsSpinningUp(false)
+      } catch (error) {
+        clearTimeout(spinUpTimer)
         setBackendStatus('offline')
-        setBackendMessage('Cannot connect to backend. Make sure Django server is running.')
-      })
+        setIsSpinningUp(false)
+        if (error.name === 'AbortError') {
+          setBackendMessage(
+            'Server took too long to respond. Please refresh the page to try again.'
+          )
+        } else {
+          setBackendMessage('Cannot connect to backend. Please try again later.')
+        }
+      }
+    }
+
+    checkBackendHealth()
   }, [])
 
   const handleSignout = async () => {
@@ -50,10 +80,11 @@ function App() {
         </p>
         <p>
           <strong>Backend:</strong> <span style={{
-            color: backendStatus === 'healthy' ? 'green' : 'red'
+            color: backendStatus === 'healthy' ? 'green' : isSpinningUp ? 'orange' : 'red'
           }}>
             {backendStatus}
           </span>
+          {isSpinningUp && <span style={{ marginLeft: '0.5rem' }}>⏳</span>}
         </p>
         {backendMessage && <p style={{ fontSize: '0.9rem', color: '#666' }}>{backendMessage}</p>}
       </div>
