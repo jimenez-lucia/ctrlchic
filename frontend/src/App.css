@@ -40,3 +40,13 @@
 .read-the-docs {
   color: #888;
 }
+
+/* Wardrobe carousel scrollbar styles */
+.wardrobe-carousel-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.wardrobe-carousel-scroll {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}

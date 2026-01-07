@@ -1,5 +1,6 @@
 """Views for wardrobe item upload and management."""
 
+import logging
 import uuid
 
 from django.contrib.auth.models import User
@@ -21,6 +22,8 @@ from .storage import (
     get_signed_upload_url,
     validate_file_extension,
 )
+
+logger = logging.getLogger(__name__)
 
 VALID_CATEGORIES = ["top", "bottom"]
 
@@ -268,21 +271,21 @@ def list_items(request: Request) -> Response:
         # Regenerate download URL (they expire after 7 days)
         try:
             fresh_url = get_download_url(item.image_path)
-            if fresh_url and fresh_url != item.image_url:
-                item.image_url = fresh_url
-                item.save()
+            # Use fresh URL if available, otherwise fall back to stored URL
+            # Don't save to database on GET request - keep it read-only
+            item_url = fresh_url if fresh_url else item.image_url
 
             items_data.append(
                 {
                     "id": str(item.id),
                     "category": item.category,
-                    "url": item.image_url,
+                    "url": item_url,
                     "uploadedAt": item.uploaded_at.isoformat(),
                 }
             )
         except Exception as e:
             # Log error but continue with other items
-            print(f"Error refreshing URL for item {item.id}: {e}")
+            logger.error(f"Error refreshing URL for item {item.id}: {e}")
             continue
 
     return Response({"items": items_data, "count": len(items_data)})
@@ -321,7 +324,7 @@ def delete_item(request: Request, item_id: str) -> Response:
         delete_file(item.image_path)
     except Exception as e:
         # Log but don't fail - continue with DB deletion
-        print(f"Error deleting file from storage: {e}")
+        logger.error(f"Error deleting file from storage: {e}")
 
     # Delete database record
     item.delete()

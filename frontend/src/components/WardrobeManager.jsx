@@ -171,22 +171,14 @@ export default function WardrobeManager() {
         {/* Scrollable container */}
         <div
           ref={scrollRef}
+          className="wardrobe-carousel-scroll"
           style={{
             display: 'flex',
             gap: '1rem',
             overflowX: 'auto',
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
             padding: '1rem 50px',
           }}
         >
-          <style>
-            {`
-              div::-webkit-scrollbar {
-                display: none;
-              }
-            `}
-          </style>
           {items.length === 0 ? (
             <p style={{ color: '#999', margin: '2rem auto' }}>
               No {category}s yet. Upload your first one!
