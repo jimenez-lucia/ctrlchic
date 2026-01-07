@@ -3,6 +3,7 @@
 from datetime import timedelta
 import re
 from typing import Optional
+import uuid
 
 from firebase_admin import storage
 
@@ -72,6 +73,48 @@ def generate_mannequin_path(firebase_uid: str) -> str:
         )
 
     return f"users/{firebase_uid}/mannequin"
+
+
+def generate_wardrobe_item_path(
+    firebase_uid: str, category: str, item_id: str, extension: str
+) -> str:
+    """
+    Generate storage path for wardrobe item.
+
+    Args:
+        firebase_uid: User's Firebase UID
+        category: 'top' or 'bottom'
+        item_id: UUID string for the item
+        extension: File extension (jpg, png, etc.)
+
+    Returns:
+        Storage path like 'users/{uid}/wardrobe/{category}s/{uuid}.ext'
+
+    Raises:
+        ValueError: If any parameter contains invalid characters
+    """
+    # SECURITY: Validate all inputs to prevent path traversal
+    if not validate_firebase_uid(firebase_uid):
+        raise ValueError(f"Invalid firebase_uid format: {firebase_uid!r}")
+
+    # Validate category
+    if category not in ["top", "bottom"]:
+        raise ValueError(f"Invalid category. Must be 'top' or 'bottom', got: {category!r}")
+
+    # Validate UUID format
+    try:
+        uuid.UUID(item_id)
+    except ValueError:
+        raise ValueError(f"Invalid UUID format: {item_id!r}")
+
+    # Validate extension
+    if extension not in ALLOWED_IMAGE_EXTENSIONS:
+        raise ValueError(f"Invalid extension: {extension!r}")
+
+    # Pluralize category for storage path (top -> tops, bottom -> bottoms)
+    category_plural = f"{category}s"
+
+    return f"users/{firebase_uid}/wardrobe/{category_plural}/{item_id}.{extension}"
 
 
 def validate_file_extension(filename: str) -> tuple[bool, Optional[str]]:

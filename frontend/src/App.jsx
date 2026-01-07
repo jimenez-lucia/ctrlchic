@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from './contexts/AuthContext'
 import Auth from './components/Auth'
 import MannequinUpload from './components/MannequinUpload'
+import WardrobeManager from './components/WardrobeManager'
 import './App.css'
 
 function App() {
@@ -123,6 +124,7 @@ function App() {
           </div>
 
           <MannequinUpload />
+          <WardrobeManager />
         </div>
       ) : (
         <>
