@@ -16,16 +16,24 @@ from .models import UserProfile
 # Initialize Firebase Admin SDK (only once)
 def _initialize_firebase() -> None:
     """Initialize Firebase Admin SDK if not already initialized."""
-    if settings.FIREBASE_CREDENTIALS_JSON:
+    if settings.FIREBASE_CREDENTIALS_JSON or settings.FIREBASE_CREDENTIALS_PATH:
         try:
             # Check if Firebase is already initialized
             firebase_admin.get_app()
         except ValueError:
             # Not initialized yet, so initialize it
             try:
-                # Parse JSON credentials from environment variable
-                cred_dict = json.loads(settings.FIREBASE_CREDENTIALS_JSON)
-                cred = credentials.Certificate(cred_dict)
+                # Try JSON credentials first (production), then fall back to file path (local dev)
+                if settings.FIREBASE_CREDENTIALS_JSON:
+                    # Parse JSON credentials from environment variable
+                    cred_dict = json.loads(settings.FIREBASE_CREDENTIALS_JSON)
+                    cred = credentials.Certificate(cred_dict)
+                elif settings.FIREBASE_CREDENTIALS_PATH:
+                    # Load credentials from file path
+                    cred = credentials.Certificate(settings.FIREBASE_CREDENTIALS_PATH)
+                else:
+                    return
+
                 # Initialize with storage bucket if configured
                 options = {}
                 if settings.FIREBASE_STORAGE_BUCKET:

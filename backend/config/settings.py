@@ -12,8 +12,8 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from pathlib import Path
 
-import dj_database_url
 from decouple import config
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -87,9 +87,7 @@ WSGI_APPLICATION = "config.wsgi.application"
 # Use DATABASE_URL if available (Render, Heroku, etc.), otherwise fall back to individual settings
 DATABASE_URL = config("DATABASE_URL", default="")
 if DATABASE_URL:
-    DATABASES = {
-        "default": dj_database_url.parse(DATABASE_URL)
-    }
+    DATABASES = {"default": dj_database_url.parse(DATABASE_URL)}
 else:
     # Local development fallback
     DATABASES = {
@@ -169,6 +167,8 @@ REST_FRAMEWORK = {
 # Firebase Settings
 # Firebase credentials as JSON string (recommended for production)
 FIREBASE_CREDENTIALS_JSON = config("FIREBASE_CREDENTIALS_JSON", default="")
+# Firebase credentials file path (recommended for local development)
+FIREBASE_CREDENTIALS_PATH = config("FIREBASE_CREDENTIALS_PATH", default="")
 FIREBASE_STORAGE_BUCKET = config("FIREBASE_STORAGE_BUCKET", default="")
 
 # File Upload Settings
