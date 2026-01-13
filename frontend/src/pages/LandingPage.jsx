@@ -8,7 +8,7 @@ export default function LandingPage() {
 
   useEffect(() => {
     if (currentUser) {
-      navigate('/app')
+      navigate('/app', { replace: true })
     }
   }, [currentUser, navigate])
 

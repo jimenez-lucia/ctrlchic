@@ -7,27 +7,54 @@ export default function RootLayout() {
   const navigate = useNavigate()
   const [backendStatus, setBackendStatus] = useState('checking')
 
+  const API_URL = import.meta.env.VITE_API_URL
+
   useEffect(() => {
+    if (!API_URL) {
+      setBackendStatus('misconfigured')
+      console.error('VITE_API_URL environment variable is not set')
+      return
+    }
+
+    let retryCount = 0
+    const maxRetries = 20
+    const retryInterval = 5000 // 5 seconds (~100 sec total)
+
     const checkBackendHealth = async () => {
       try {
-        const response = await fetch('http://localhost:8000/api/health/')
+        const response = await fetch(`${API_URL}/api/health/`)
         if (response.ok) {
           setBackendStatus('online')
+          return true
+        } else {
+          setBackendStatus('offline')
+          return false
+        }
+      } catch (error) {
+        if (retryCount < maxRetries) {
+          setBackendStatus('spinning up')
         } else {
           setBackendStatus('offline')
         }
-      } catch (error) {
-        setBackendStatus('offline')
+        return false
       }
     }
 
-    checkBackendHealth()
-  }, [])
+    const startHealthCheck = async () => {
+      const isOnline = await checkBackendHealth()
+      if (!isOnline && retryCount < maxRetries) {
+        retryCount++
+        setTimeout(startHealthCheck, retryInterval)
+      }
+    }
+
+    startHealthCheck()
+  }, [API_URL])
 
   const handleSignout = async () => {
     try {
-      navigate('/')
       await signout()
+      navigate('/')
     } catch (error) {
       console.error('Error signing out:', error)
     }
@@ -93,12 +120,18 @@ export default function RootLayout() {
 
       <div style={{
         padding: '0.5rem 2rem',
-        backgroundColor: backendStatus === 'online' ? '#d4edda' : backendStatus === 'offline' ? '#f8d7da' : '#fff3cd',
-        color: backendStatus === 'online' ? '#155724' : backendStatus === 'offline' ? '#721c24' : '#856404',
+        backgroundColor: backendStatus === 'online' ? '#d4edda' :
+                        backendStatus === 'offline' || backendStatus === 'misconfigured' ? '#f8d7da' : '#fff3cd',
+        color: backendStatus === 'online' ? '#155724' :
+               backendStatus === 'offline' || backendStatus === 'misconfigured' ? '#721c24' : '#856404',
         fontSize: '0.875rem',
         textAlign: 'center'
       }}>
-        Backend: {backendStatus}
+        {backendStatus === 'spinning up'
+          ? 'Backend: spinning up (this may take a minute)...'
+          : backendStatus === 'misconfigured'
+          ? 'Backend: VITE_API_URL not configured'
+          : `Backend: ${backendStatus}`}
       </div>
 
       <main style={{ flex: 1 }}>
