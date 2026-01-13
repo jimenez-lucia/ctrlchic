@@ -5,5 +5,8 @@ node_modules/
 # Environment files
 .env
 
+# Firebase
+firebase-debug.log
+
 # VSCode workspace settings
 .vscode/

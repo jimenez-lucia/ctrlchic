@@ -2,7 +2,13 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
 
-export default function WardrobeManager() {
+export default function WardrobeManager({
+  selectionMode = false,
+  onTopSelect = null,
+  onBottomSelect = null,
+  selectedTop = null,
+  selectedBottom = null
+}) {
   const [tops, setTops] = useState([]);
   const [bottoms, setBottoms] = useState([]);
   const [uploading, setUploading] = useState({ top: false, bottom: false });
@@ -138,6 +144,22 @@ export default function WardrobeManager() {
     }
   };
 
+  const isSelected = (item, category) => {
+    if (!selectionMode) return false;
+    return category === 'top'
+      ? selectedTop?.id === item.id
+      : selectedBottom?.id === item.id;
+  };
+
+  const handleItemClick = (item, category) => {
+    if (!selectionMode) return;
+    if (category === 'top') {
+      onTopSelect?.(item);
+    } else {
+      onBottomSelect?.(item);
+    }
+  };
+
   const renderCarousel = (items, category, scrollRef) => (
     <div style={{ marginBottom: '3rem' }}>
       <h3 style={{ marginBottom: '1rem', textTransform: 'capitalize' }}>
@@ -187,13 +209,18 @@ export default function WardrobeManager() {
             items.map((item) => (
               <div
                 key={item.id}
+                onClick={() => handleItemClick(item, category)}
                 style={{
                   minWidth: '200px',
                   maxWidth: '200px',
                   position: 'relative',
                   borderRadius: '8px',
                   overflow: 'hidden',
-                  border: '1px solid #ddd',
+                  border: isSelected(item, category)
+                    ? '3px solid #007bff'
+                    : '1px solid #ddd',
+                  cursor: selectionMode ? 'pointer' : 'default',
+                  transition: 'all 0.2s',
                 }}
               >
                 <img
@@ -205,23 +232,50 @@ export default function WardrobeManager() {
                     objectFit: 'cover',
                   }}
                 />
-                <button
-                  onClick={() => handleDelete(item.id, category)}
-                  style={{
-                    position: 'absolute',
-                    top: '8px',
-                    right: '8px',
-                    backgroundColor: 'rgba(220, 53, 69, 0.9)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    padding: '4px 8px',
-                    cursor: 'pointer',
-                    fontSize: '0.8rem',
-                  }}
-                >
-                  Delete
-                </button>
+
+                {/* Checkmark overlay when selected */}
+                {isSelected(item, category) && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '8px',
+                      left: '8px',
+                      backgroundColor: '#007bff',
+                      color: 'white',
+                      borderRadius: '50%',
+                      width: '28px',
+                      height: '28px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1rem',
+                      fontWeight: 'bold',
+                    }}
+                  >
+                    ✓
+                  </div>
+                )}
+
+                {/* Delete button - only show when NOT in selection mode */}
+                {!selectionMode && (
+                  <button
+                    onClick={() => handleDelete(item.id, category)}
+                    style={{
+                      position: 'absolute',
+                      top: '8px',
+                      right: '8px',
+                      backgroundColor: 'rgba(220, 53, 69, 0.9)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      padding: '4px 8px',
+                      cursor: 'pointer',
+                      fontSize: '0.8rem',
+                    }}
+                  >
+                    Delete
+                  </button>
+                )}
               </div>
             ))
           )}
@@ -251,31 +305,33 @@ export default function WardrobeManager() {
         )}
       </div>
 
-      {/* Upload button */}
-      <div style={{ marginTop: '1rem' }}>
-        <label
-          htmlFor={`upload-${category}`}
-          style={{
-            display: 'inline-block',
-            padding: '0.5rem 1rem',
-            backgroundColor: uploading[category] ? '#ccc' : '#28a745',
-            color: 'white',
-            borderRadius: '4px',
-            cursor: uploading[category] ? 'not-allowed' : 'pointer',
-            fontSize: '0.9rem',
-          }}
-        >
-          {uploading[category] ? 'Uploading...' : `Upload ${category}`}
-        </label>
-        <input
-          id={`upload-${category}`}
-          type="file"
-          accept="image/jpeg,image/jpg,image/png,image/heic,image/heif,image/webp"
-          onChange={(e) => handleFileSelect(e, category)}
-          disabled={uploading[category]}
-          style={{ display: 'none' }}
-        />
-      </div>
+      {/* Upload button - only show when NOT in selection mode */}
+      {!selectionMode && (
+        <div style={{ marginTop: '1rem' }}>
+          <label
+            htmlFor={`upload-${category}`}
+            style={{
+              display: 'inline-block',
+              padding: '0.5rem 1rem',
+              backgroundColor: uploading[category] ? '#ccc' : '#28a745',
+              color: 'white',
+              borderRadius: '4px',
+              cursor: uploading[category] ? 'not-allowed' : 'pointer',
+              fontSize: '0.9rem',
+            }}
+          >
+            {uploading[category] ? 'Uploading...' : `Upload ${category}`}
+          </label>
+          <input
+            id={`upload-${category}`}
+            type="file"
+            accept="image/jpeg,image/jpg,image/png,image/heic,image/heif,image/webp"
+            onChange={(e) => handleFileSelect(e, category)}
+            disabled={uploading[category]}
+            style={{ display: 'none' }}
+          />
+        </div>
+      )}
     </div>
   );
 
@@ -285,9 +341,11 @@ export default function WardrobeManager() {
 
   return (
     <div style={{ maxWidth: '1200px', margin: '2rem auto', padding: '2rem' }}>
-      <h2>My Wardrobe</h2>
+      <h2>{selectionMode ? 'Select Your Outfit' : 'My Wardrobe'}</h2>
       <p style={{ color: '#666', marginBottom: '2rem' }}>
-        Upload and manage your clothing items for virtual try-on.
+        {selectionMode
+          ? 'Click on items to select them for your outfit. Click again to deselect.'
+          : 'Upload and manage your clothing items for virtual try-on.'}
       </p>
 
       {/* Error/Success Messages */}
@@ -325,9 +383,11 @@ export default function WardrobeManager() {
       {/* Bottoms Carousel */}
       {renderCarousel(bottoms, 'bottom', bottomsScrollRef)}
 
-      <p style={{ fontSize: '0.85rem', color: '#666', marginTop: '2rem' }}>
-        Accepted formats: JPG, PNG, HEIC, HEIF, WebP (max 10MB)
-      </p>
+      {!selectionMode && (
+        <p style={{ fontSize: '0.85rem', color: '#666', marginTop: '2rem' }}>
+          Accepted formats: JPG, PNG, HEIC, HEIF, WebP (max 10MB)
+        </p>
+      )}
     </div>
   );
 }
